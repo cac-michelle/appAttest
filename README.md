@@ -4,6 +4,15 @@
 
 PHP 8.1+ · runtime 零相依（只用 `ext-openssl` 和 `ext-pdo_sqlite`）
 
+這個 repo 同時包含合約的兩端：
+
+| 目錄 | 內容 |
+|---|---|
+| 這裡（根目錄） | **後端驗證**，PHP 8.1+ |
+| [`ios/`](ios/) | **iOS 客戶端** Swift Package，iOS 15+ |
+
+兩端放在一起的理由是 `requestHash` —— 那段邏輯必須逐位元組一致，所以兩邊共用同一份測試向量（見〈requestHash〉一節）。後端團隊只需要看根目錄。
+
 ---
 
 ## 先跑這個
@@ -70,7 +79,8 @@ vendor/bin/phpunit
 - [ ] `openssl_verify()` / `openssl_x509_verify()` 都是 `=== 1` 判斷，不是 `if (!…)`
 - [ ] counter 是**嚴格**遞增（`<=` 拒絕，不是 `<`）
 - [ ] requestHash 是 server 自己重算的，header 的值只拿來比對
-- [ ] requestHash 的算法跟 `src/RequestHash.php` 逐位元組相同（用黃金測試向量驗）
+- [ ] requestHash 的算法跟 `src/RequestHash.php` 逐位元組相同（用跨語言向量驗）
+- [ ] requestHash 用的 `path` 是**未解碼**的（很多框架會自動解碼，那就會對不上）
 - [ ] challenge 的消耗是**單一原子操作**，靠 affected rows 判斷成敗
 - [ ] 註冊失敗也會消耗掉 challenge（否則攻擊者能用同一個 challenge 無限試）
 - [ ] 所有比對敏感值的地方用 `hash_equals()`，不是 `===`
@@ -227,7 +237,19 @@ requestHash = base64url_nopad(
 
 把 challenge 混進去，requestHash 就天生綁定這一次的 challenge；把 method 和 path 混進去，攔截者就沒辦法把打到 `/protected/echo` 的簽章轉送到 `/admin/delete-all`。
 
-`tests/Unit/RequestHashTest.php` 有黃金測試向量。**那個測試壞掉 = client 合約變了**，兩邊必須同時改、同時發版。
+### 跨語言測試向量
+
+`ios/Tests/AppAttestClientTests/Fixtures/request-hash-vectors.json` 有 80 組向量，PHP 與 Swift **兩邊各有一個測試驗證同一份檔案**：
+
+- 改了 PHP → `tests/Unit/CrossLanguageVectorTest.php` 紅
+- 改了 Swift → `ios/.../CrossLanguageVectorTests.swift` 紅
+- 要改合約 → `php tools/generate-request-hash-vectors.php` 重新產生，兩邊同時發版
+
+向量涵蓋空 body、4KB body、含 null byte 的 body、中文與 emoji、percent-encoded 的 path、被編碼的斜線 —— 兩種語言最容易產生歧異的地方。
+
+`tests/Unit/RequestHashTest.php` 另有兩組寫死的黃金向量。**那些測試壞掉 = client 合約變了**。
+
+> **給後端的提醒**：`path` 用的是**未解碼**的形式（也就是 `REQUEST_URI` 裡的原樣）。PHP 這邊 `parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)` 剛好就是對的；但若你們的框架給的是已解碼的 path（很多框架會幫你解），含 `%XX` 或非 ASCII 的 URL 就會驗不過，而其他 URL 一切正常。移植時務必確認這一點。
 
 ---
 

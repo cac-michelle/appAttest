@@ -40,9 +40,21 @@ final class RequestHash
      * 算出一個請求的 requestHash。
      *
      * @param string $method    HTTP method，大寫
-     * @param string $path      URL path，不含 query string
+     * @param string $path      URL path，不含 query string，且必須是**未解碼**的形式
      * @param string $body      原始 request body（空 body 傳 ""）
      * @param string $challenge challenge 的原始 32 bytes
+     *
+     * === $path 一定要用未解碼的形式 ===
+     *
+     * client 送出的是 percent-encoded 的 path（線上實際傳的那份），所以
+     * server 也必須用同一份去算。
+     *
+     *     parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)   // ✅ 未解碼
+     *     urldecode(...)                                      // ❌ 解碼過就對不上
+     *
+     * 很多框架的 router 會貼心地幫你把 path 解碼後才交給 controller。若你
+     * 們的框架是這樣，這裡要改成讀原始的 REQUEST_URI，否則只有含 %XX 或
+     * 非 ASCII 的 URL 會驗不過，其他一切正常 —— 極難查。
      */
     public static function compute(string $method, string $path, string $body, string $challenge): string
     {
