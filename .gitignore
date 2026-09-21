@@ -1,0 +1,5 @@
+/vendor/
+/var/
+/.phpunit.cache/
+.DS_Store
+/.claude/settings.local.json
