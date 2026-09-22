@@ -8,6 +8,11 @@
 /ios/.swiftpm/
 /ios/Package.resolved
 
+# Xcode（tools/probe 的 derived data；.xcodeproj 由 xcodegen 從 project.yml 產生）
+/tools/probe/build/
+/tools/probe/build-sim/
+/tools/probe/AttestProbe.xcodeproj/
+
 # 其他
 .DS_Store
 /.claude/settings.local.json

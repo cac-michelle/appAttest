@@ -1,0 +1,39 @@
+# App Attest 真機量測用的一次性 App。
+#
+#     cd tools/probe
+#     xcodegen generate
+#     ./run.sh <TEAM_ID> <BUNDLE_ID>
+#
+# 這是拋棄式的量測工具，不是產品程式碼，也不進 App Store。
+name: AttestProbe
+options:
+  bundleIdPrefix: tw.com.appattest
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    # 由 run.sh 從命令列覆寫。
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "5.9"
+
+targets:
+  AttestProbe:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Attest Probe
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: tw.com.appattest.probe
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: NO
